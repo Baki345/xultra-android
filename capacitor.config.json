@@ -1,0 +1,47 @@
+{
+  "appId": "space.xultra.app",
+  "appName": "XULTRA",
+  "webDir": "www",
+  "bundledWebRuntime": false,
+  "backgroundColor": "#06060c",
+  "server": {
+    "androidScheme": "https",
+    "url": "https://xultra.space",
+    "cleartext": false,
+    "allowNavigation": [
+      "xultra.space",
+      "*.xultra.space",
+      "*.firebaseio.com",
+      "*.googleapis.com",
+      "*.gstatic.com",
+      "*.firebaseapp.com",
+      "*.cloudfunctions.net",
+      "cdn.jsdelivr.net",
+      "fonts.googleapis.com",
+      "fonts.gstatic.com",
+      "i.ibb.co",
+      "catbox.moe",
+      "*.catbox.moe",
+      "platform.twitter.com",
+      "player.twitch.tv",
+      "www.youtube.com",
+      "www.youtube-nocookie.com"
+    ]
+  },
+  "android": {
+    "allowMixedContent": false,
+    "backgroundColor": "#06060c",
+    "webContentsDebuggingEnabled": true
+  },
+  "plugins": {
+    "SplashScreen": {
+      "launchShowDuration": 1500,
+      "backgroundColor": "#06060c",
+      "showSpinner": false
+    },
+    "StatusBar": {
+      "style": "DARK",
+      "backgroundColor": "#0a0a0f"
+    }
+  }
+}
