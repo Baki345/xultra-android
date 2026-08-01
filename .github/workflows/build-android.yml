@@ -18,7 +18,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: "22"
 
       - name: Setup Java
         uses: actions/setup-java@v4
@@ -28,6 +28,14 @@ jobs:
 
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
+
+      - name: Ensure www exists
+        run: |
+          if [ ! -f www/index.html ]; then
+            echo "ERROR: www/index.html missing"
+            ls -la
+            exit 1
+          fi
 
       - name: Install npm dependencies
         run: npm install
@@ -41,9 +49,10 @@ jobs:
           if [ -f "$MANIFEST" ] && ! grep -q "RECORD_AUDIO" "$MANIFEST"; then
             sed -i 's|<manifest \(.*\)>|<manifest \1>\n    <uses-permission android:name="android.permission.INTERNET" />\n    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />\n    <uses-permission android:name="android.permission.RECORD_AUDIO" />\n    <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />\n    <uses-permission android:name="android.permission.CAMERA" />\n    <uses-permission android:name="android.permission.WAKE_LOCK" />|' "$MANIFEST"
             echo "permissions injected"
-          else
-            echo "skip permissions"
           fi
+
+      - name: Apply XULTRA branding (icons + splash)
+        run: bash scripts/apply-branding.sh
 
       - name: Sync Capacitor
         run: npx cap sync android
@@ -55,10 +64,16 @@ jobs:
         working-directory: android
         run: ./gradlew assembleDebug --no-daemon
 
+      - name: Rename APK
+        run: |
+          mkdir -p out
+          cp android/app/build/outputs/apk/debug/*.apk out/XULTRA-latest.apk
+          ls -lh out/
+
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: xultra-android-apk
-          path: android/app/build/outputs/apk/debug/*.apk
+          path: out/XULTRA-latest.apk
           if-no-files-found: error
           retention-days: 30
