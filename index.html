@@ -1,0 +1,1360 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self' https: data: blob:; script-src 'self' 'unsafe-inline' https://www.gstatic.com https://cdn.jsdelivr.net https://platform.twitter.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com data:; img-src 'self' https: data: blob:; media-src 'self' https: blob:; connect-src 'self' https: wss:; frame-src https://www.youtube.com https://www.youtube-nocookie.com https://player.vimeo.com https://platform.twitter.com https://player.twitch.tv https://www.twitch.tv https://kick.com https://player.kick.com; object-src 'none'; base-uri 'self'; form-action 'self';">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>XULTRA</title>
+  <meta name="description" content="XULTRA — ta bulle dark neon. Hub social, vocal, profils." />
+  <meta name="theme-color" content="#0a0a0f" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="XULTRA" />
+  <meta name="application-name" content="XULTRA" />
+  <link rel="manifest" href="/manifest.webmanifest" />
+  <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+  <meta http-equiv="Permissions-Policy" content="microphone=(self), camera=(self)" />
+  <link rel="stylesheet" href="style.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.7/dist/hls.min.js"></script>
+</head>
+<body>
+  <div id="pwaInstallBar" class="pwa-install-bar" style="display:none">
+    <div class="pwa-install-inner">
+      <img src="/icon-192.png" alt="" class="pwa-install-icon" width="40" height="40">
+      <div class="pwa-install-text">
+        <strong>Installer XULTRA</strong>
+        <span>App comme Discord — accès rapide</span>
+      </div>
+      <button type="button" class="btn-primary pwa-install-btn" id="pwaInstallBtn">Installer</button>
+      <button type="button" class="pwa-install-close" id="pwaInstallClose" aria-label="Fermer">×</button>
+    </div>
+  </div>
+  <div id="iosToastStack" class="ios-toast-stack" aria-live="polite"></div>
+  <div class="background" id="pageBg"></div>
+  <div class="lofi-bg" id="lofiBg"></div>
+  <div class="lofi-blur"></div>
+  <canvas id="particleCanvas"></canvas>
+  <div id="emojiPicker" class="emoji-picker" style="display:none"></div>
+
+  <!-- NOTE VIEW -->
+  <div id="noteViewModal" class="modal" onclick="if(event.target===this)closeNoteView()">
+    <div class="modal-box note-view-box" style="max-width:640px">
+      <button type="button" class="close-btn" onclick="closeNoteView()">×</button>
+      <div class="note-view-head">
+        <h2 id="noteViewTitle">Note</h2>
+        <span id="noteViewSyntax" class="note-syntax-badge" style="display:none"></span>
+      </div>
+      <p class="hint" id="noteViewMeta"></p>
+      <div id="noteViewPassGate" style="display:none;margin:12px 0">
+        <label class="field-label">Cette note est protégée</label>
+        <input type="password" id="noteViewPassInput" class="input" placeholder="Mot de passe">
+        <button type="button" class="btn-primary" style="width:100%" onclick="unlockNoteView()">Déverrouiller</button>
+        <p class="hint" id="noteViewPassErr" style="color:#f87171"></p>
+      </div>
+      <pre id="noteViewBody" class="note-body" style="display:none"></pre>
+      <div class="note-view-actions">
+        <button type="button" class="btn btn-outline" id="noteViewCopyBtn" onclick="copyOpenNote()" style="display:none">Copier le texte</button>
+        <button type="button" class="btn btn-outline" id="noteViewLinkBtn" onclick="copyCurrentNoteLink()" style="display:none">Copier le lien</button>
+      </div>
+    </div>
+  </div>
+  <!-- AUTH -->
+  <div id="authModal" class="modal" onclick="if(event.target===this)closeModal()">
+    <div class="modal-box">
+      <button type="button" class="close-btn" onclick="closeModal()">×</button>
+      <h2 id="authTitle">Connexion</h2>
+      <div class="tabs">
+        <button type="button" class="tab active" id="tabLogin" onclick="switchTab(false)">Connexion</button>
+        <button type="button" class="tab" id="tabRegister" onclick="switchTab(true)">Inscription</button>
+      </div>
+      <input type="text" id="username" placeholder="Pseudo (unique)" class="input" style="display:none">
+      <input type="email" id="email" placeholder="Email" class="input">
+      <input type="password" id="password" placeholder="Mot de passe (6+)" class="input">
+      <input type="text" id="website" class="hp-field" tabindex="-1" autocomplete="off">
+      <div id="captchaBox" style="display:none">
+        <label class="field-label" id="captchaLabel">Anti-bot</label>
+        <input type="text" id="captchaAnswer" class="input" placeholder="Résultat">
+      </div>
+      <button type="button" class="btn-primary" onclick="handleAuth()">Se connecter</button>
+      <p id="authError" class="error"></p>
+    </div>
+  </div>
+
+  <!-- PROFILE EDIT -->
+  <div id="profileModal" class="modal" onclick="if(event.target===this)closeProfile()">
+    <div class="modal-box design-studio">
+      <button type="button" class="close-btn" onclick="closeProfile()">×</button>
+      <div class="ds-header">
+        <h2>Studio profil</h2>
+        <p class="ds-sub">Design ton profil unique</p>
+      </div>
+      <div class="ds-preview" id="dsPreview">
+        <div class="dsp-avatar" id="dspAvatar">?</div>
+        <div class="dsp-name" id="dspName">Ton nom</div>
+        <div class="dsp-handle" id="dspHandle">@pseudo</div>
+        <div class="dsp-bio" id="dspBio"></div>
+        <div class="dsp-btn" id="dspBtn">Exemple de lien</div>
+      </div>
+      <div class="ds-tabs">
+        <button type="button" class="ds-tab active" onclick="showDsTab('header',this)">Profil</button>
+        <button type="button" class="ds-tab" onclick="showDsTab('design',this)">Design</button>
+        <button type="button" class="ds-tab" onclick="showDsTab('links',this)">Liens</button>
+        <button type="button" class="ds-tab" onclick="showDsTab('content',this)">Contenu</button>
+        <button type="button" class="ds-tab" onclick="showDsTab('security',this)">Compte</button>
+      </div>
+      <div class="ds-body">
+        <!-- HEADER / PROFILE -->
+        <div id="ds-header" class="ds-panel">
+          <label class="field-label">Pseudo</label>
+          <div class="handle-edit-row">
+            <span class="handle-at">@</span>
+            <input type="text" id="myUsername" class="input handle-base-input" maxlength="20" placeholder="pseudo" oninput="refreshHandlePreview()">
+            <span class="handle-hash">#</span>
+            <input type="text" id="myTag" class="input handle-tag-input" maxlength="4" placeholder="0000" oninput="this.value=this.value.replace(/[^0-9a-zA-Z]/g,'').slice(0,4);refreshHandlePreview()">
+            <button type="button" class="btn btn-outline handle-rand-btn" onclick="randomizeMyTag()" title="Générer un # aléatoire">🎲</button>
+          </div>
+          <p class="hint" id="usernameHint">Affiché : <span id="handlePreviewLive" class="handle-preview-live">@pseudo#0000</span></p>
+          <label class="field-label">Nom affiché</label>
+          <input type="text" id="myDisplayName" class="input" maxlength="40" oninput="refreshDsPreview()">
+          <label class="field-label">Bio</label>
+          <input type="text" id="myBio" class="input" maxlength="150" oninput="refreshDsPreview()">
+          <label class="switch-label"><input type="checkbox" id="myBioShow" checked onchange="refreshDsPreview()"><span>Afficher la bio</span></label>
+          <label class="field-label">Position de la bio</label>
+          <select id="myBioPos" class="input" onchange="refreshDsPreview()">
+            <option value="under-name">Sous le nom</option>
+            <option value="under-handle">Sous le @pseudo</option>
+            <option value="under-badges">Sous les badges</option>
+            <option value="under-share">Sous Partager / QR</option>
+            <option value="above-links">Au-dessus des liens</option>
+            <option value="below-links">Sous les liens</option>
+            <option value="footer">Tout en bas du profil</option>
+          </select>
+          <label class="field-label">Avatar (photo / GIF)</label>
+          <div class="upload-row">
+            <input type="text" id="myAvatar" class="input" placeholder="URL" oninput="refreshDsPreview()">
+            <label class="upload-btn">📁<input type="file" accept="image/*,.gif" hidden onchange="uploadImgbb(this,'myAvatar')"></label>
+          </div>
+          <label class="field-label">Logo (PNG transparent)</label>
+          <div class="upload-row">
+            <input type="text" id="myLogo" class="input" placeholder="URL logo">
+            <label class="upload-btn">📁<input type="file" accept="image/*" hidden onchange="uploadImgbb(this,'myLogo')"></label>
+          </div>
+          <label class="field-label">Taille du titre</label>
+          <div class="chip-row">
+            <button type="button" class="chip active" data-v="normal" onclick="pickChip('myTitleSize',this)">Normal</button>
+            <button type="button" class="chip" data-v="large" onclick="pickChip('myTitleSize',this)">Large</button>
+            <button type="button" class="chip" data-v="small" onclick="pickChip('myTitleSize',this)">Petit</button>
+          </div>
+          <input type="hidden" id="myTitleSize" value="normal">
+          <label class="field-label">Fond image / GIF</label>
+          <div class="upload-row">
+            <input type="text" id="myBg" class="input" placeholder="URL image ou GIF" oninput="onBgFieldChange()">
+            <label class="upload-btn">📁<input type="file" accept="image/*,.gif,image/gif" hidden onchange="uploadImgbb(this,'myBg');setTimeout(onBgFieldChange,600)"></label>
+          </div>
+          <label class="field-label">Fond vidéo (muet, loop)</label>
+          <div class="upload-row">
+            <input type="text" id="myBgVideo" class="input" placeholder="URL .mp4 / .webm" oninput="onBgFieldChange()">
+            <label class="upload-btn">📁<input type="file" accept="video/mp4,video/webm,video/*" hidden onchange="uploadBgVideo(this)"></label>
+          </div>
+          <p class="hint">Priorité : vidéo → image/GIF → thème. Vidéo toujours sans son.</p>
+          <label class="field-label">Layout header</label>
+          <div class="chip-row" id="chipHeader">
+            <button type="button" class="chip active" data-v="classic" onclick="pickChip('myHeaderLayout',this)">Classic</button>
+            <button type="button" class="chip" data-v="hero" onclick="pickChip('myHeaderLayout',this)">Hero</button>
+          </div>
+          <input type="hidden" id="myHeaderLayout" value="classic">
+          <label class="field-label">Statut</label>
+          <select id="myStatus" class="input">
+            <option value="auto">Auto</option>
+            <option value="online">🟢 En ligne</option>
+            <option value="away">🟡 Absent</option>
+            <option value="dnd">🔴 Ne pas déranger</option>
+            <option value="offline">⚫ Invisible</option>
+          </select>
+        </div>
+        <!-- DESIGN -->
+        <div id="ds-design" class="ds-panel" style="display:none">
+          <label class="field-label">Thème</label>
+          <div class="theme-grid" id="themeGrid">
+            <button type="button" class="theme-swatch active" data-v="violet" style="--sw:#7c3aed" onclick="pickTheme(this)"></button>
+            <button type="button" class="theme-swatch" data-v="ocean" style="--sw:#0ea5e9" onclick="pickTheme(this)"></button>
+            <button type="button" class="theme-swatch" data-v="sunset" style="--sw:#f97316" onclick="pickTheme(this)"></button>
+            <button type="button" class="theme-swatch" data-v="mint" style="--sw:#34d399" onclick="pickTheme(this)"></button>
+            <button type="button" class="theme-swatch" data-v="rose" style="--sw:#fb7185" onclick="pickTheme(this)"></button>
+            <button type="button" class="theme-swatch" data-v="gold" style="--sw:#fbbf24" onclick="pickTheme(this)"></button>
+            <button type="button" class="theme-swatch" data-v="noir" style="--sw:#52525b" onclick="pickTheme(this)"></button>
+            <button type="button" class="theme-swatch" data-v="neon" style="--sw:#22d3ee" onclick="pickTheme(this)"></button>
+            <button type="button" class="theme-swatch" data-v="pastel" style="--sw:#c4b5fd" onclick="pickTheme(this)"></button>
+            <button type="button" class="theme-swatch" data-v="forest" style="--sw:#4ade80" onclick="pickTheme(this)"></button>
+          </div>
+          <input type="hidden" id="myTheme" value="violet">
+          <label class="field-label">Type de fond</label>
+          <select id="myBgType" class="input" onchange="refreshDsPreview()">
+            <option value="theme">Dégradé thème</option>
+            <option value="gradient">Dégradé fort</option>
+            <option value="flat">Couleur unie</option>
+            <option value="image">Image / GIF</option>
+            <option value="video">Vidéo</option>
+          </select>
+          <div class="color-grid">
+            <div><label class="field-label">Fond</label><input type="color" id="myBgColor" class="input color-input" value="#0a0a0f" oninput="refreshDsPreview()"></div>
+            <div><label class="field-label">Bouton</label><input type="color" id="myBtnColor" class="input color-input" value="#7c3aed" oninput="refreshDsPreview()"></div>
+            <div><label class="field-label">Texte btn</label><input type="color" id="myBtnText" class="input color-input" value="#ffffff" oninput="refreshDsPreview()"></div>
+            <div><label class="field-label">Texte page</label><input type="color" id="myTextColor" class="input color-input" value="#f4f4f5" oninput="refreshDsPreview()"></div>
+          </div>
+          <label class="field-label">Forme boutons</label>
+          <div class="chip-row">
+            <button type="button" class="chip active" data-v="rounded" onclick="pickChip('myBtnShape',this)">Arrondi</button>
+            <button type="button" class="chip" data-v="pill" onclick="pickChip('myBtnShape',this)">Pilule</button>
+            <button type="button" class="chip" data-v="square" onclick="pickChip('myBtnShape',this)">Carré</button>
+            <button type="button" class="chip" data-v="soft" onclick="pickChip('myBtnShape',this)">Soft</button>
+          </div>
+          <input type="hidden" id="myBtnShape" value="rounded">
+          <label class="field-label">Style boutons</label>
+          <div class="chip-row">
+            <button type="button" class="chip active" data-v="fill" onclick="pickChip('myBtnStyle',this)">Rempli</button>
+            <button type="button" class="chip" data-v="outline" onclick="pickChip('myBtnStyle',this)">Contour</button>
+            <button type="button" class="chip" data-v="glass" onclick="pickChip('myBtnStyle',this)">Glass</button>
+            <button type="button" class="chip" data-v="glow" onclick="pickChip('myBtnStyle',this)">Glow</button>
+            <button type="button" class="chip" data-v="shadow" onclick="pickChip('myBtnStyle',this)">Ombre</button>
+          </div>
+          <input type="hidden" id="myBtnStyle" value="fill">
+          <label class="field-label">Police</label>
+          <div class="chip-row">
+            <button type="button" class="chip active" data-v="inter" onclick="pickChip('myFont',this)">Inter</button>
+            <button type="button" class="chip" data-v="mono" onclick="pickChip('myFont',this)">Mono</button>
+            <button type="button" class="chip" data-v="serif" onclick="pickChip('myFont',this)">Serif</button>
+            <button type="button" class="chip" data-v="display" onclick="pickChip('myFont',this)">Display</button>
+            <button type="button" class="chip" data-v="hand" onclick="pickChip('myFont',this)">Hand</button>
+            <button type="button" class="chip" data-v="tech" onclick="pickChip('myFont',this)">Tech</button>
+          </div>
+          <input type="hidden" id="myFont" value="inter">
+          <label class="field-label">Particules</label>
+          <select id="myParticles" class="input">
+            <option value="none">Aucune</option>
+            <option value="hearts">Cœurs</option>
+            <option value="stars">Étoiles</option>
+            <option value="snow">Neige</option>
+            <option value="sparkles">Étincelles</option>
+            <option value="music">Notes</option>
+          </select>
+        </div>
+        <!-- LINKS -->
+        <div id="ds-links" class="ds-panel" style="display:none">
+          <div class="lt-add-bar">
+            <input type="text" id="ltQuickUrl" class="input" placeholder="Colle ou cherche un lien…" onkeydown="if(event.key==='Enter'){event.preventDefault();ltQuickAdd()}">
+            <button type="button" class="btn-primary lt-add-btn" onclick="ltQuickAdd()">+ Add</button>
+          </div>
+          <div class="lt-type-grid">
+            <button type="button" class="lt-type" onclick="ltAddPreset('collection')"><span>📁</span>Collection</button>
+            <button type="button" class="lt-type" onclick="ltAddPreset('link')"><span>🔗</span>Lien</button>
+            <button type="button" class="lt-type" onclick="ltAddPreset('file')"><span>🏷️</span>Produit</button>
+            <button type="button" class="lt-type" onclick="ltAddPreset('form')"><span>💬</span>Form</button>
+          </div>
+          <p class="field-label" style="margin-top:10px">Suggestions</p>
+          <div class="lt-suggest">
+            <button type="button" class="lt-sug" onclick="ltAddPreset('instagram')">📸 Instagram</button>
+            <button type="button" class="lt-sug" onclick="ltAddPreset('tiktok')">🎵 TikTok</button>
+            <button type="button" class="lt-sug" onclick="ltAddPreset('youtube')">▶️ YouTube</button>
+            <button type="button" class="lt-sug" onclick="ltAddPreset('spotify')">🎧 Spotify</button>
+            <button type="button" class="lt-sug" onclick="ltAddPreset('discord')">💬 Discord</button>
+            <button type="button" class="lt-sug" onclick="ltAddPreset('x')">𝕏 X / Twitter</button>
+            <button type="button" class="lt-sug" onclick="ltAddPreset('map')">📍 Maps</button>
+            <button type="button" class="lt-sug" onclick="ltAddPreset('file')">⬇️ Téléchargement</button>
+            <button type="button" class="lt-sug" onclick="ltAddPreset('email')">✉️ Email</button>
+            <button type="button" class="lt-sug" onclick="ltAddPreset('whatsapp')">📱 WhatsApp</button>
+          </div>
+          <p class="hint" style="margin-top:8px">Tes liens (ordre = affichage profil)</p>
+          <div id="mySocialEditor"></div>
+          <button type="button" class="btn btn-outline" style="width:100%;margin:8px 0" onclick="addMySocialRow()">+ Lien personnalisé</button>
+          <h3 class="edit-h3">Blocs avancés</h3>
+          <div class="block-type-grid">
+            <button type="button" class="block-type-btn" onclick="addBlock('header')">🏷 Titre section</button>
+            <button type="button" class="block-type-btn" onclick="addBlock('collection')">📂 Collection</button>
+            <button type="button" class="block-type-btn" onclick="addBlock('youtube')">▶️ YouTube embed</button>
+            <button type="button" class="block-type-btn" onclick="addBlock('map')">📍 Maps embed</button>
+            <button type="button" class="block-type-btn" onclick="addBlock('form')">📝 Formulaire</button>
+            <button type="button" class="block-type-btn" onclick="addBlock('file')">📁 Fichier</button>
+          </div>
+          <div id="myBlocksEditor"></div>
+        </div>
+        <!-- CONTENT -->
+        <div id="ds-content" class="ds-panel" style="display:none">
+          <h3 class="edit-h3">Galerie</h3>
+          <div id="myGalleryEditor"></div>
+          <div class="upload-row">
+            <input type="text" id="myGalUrl" class="input" placeholder="URL image">
+            <label class="upload-btn">📁<input type="file" accept="image/*" hidden onchange="uploadImgbb(this,'myGalUrl')"></label>
+          </div>
+          <button type="button" class="btn btn-outline" style="width:100%;margin-bottom:12px" onclick="addMyGalImage()">+ Image</button>
+          <h3 class="edit-h3">Animés</h3>
+          <div id="myAnimeEditor"></div>
+          <div class="anime-search-wrap">
+            <input type="text" id="animeTitle" class="input" placeholder="Chercher un anime (MAL)..." autocomplete="off" oninput="searchAnimeMAL(this.value)">
+            <div id="animeSuggest" class="anime-suggest" style="display:none"></div>
+          </div>
+          <input type="hidden" id="animeMalId" value="">
+          <input type="hidden" id="animeImage" value="">
+          <input type="hidden" id="animeSynopsis" value="">
+          <div id="animePicked" class="anime-picked" style="display:none"></div>
+          <select id="animeStatus" class="input">
+            <option value="watching">En cours</option>
+            <option value="completed">Terminé</option>
+            <option value="plan">Planifié</option>
+            <option value="dropped">Drop</option>
+          </select>
+          <input type="number" id="animeScore" class="input" placeholder="Note /10" min="0" max="10" step="0.5">
+          <button type="button" class="btn btn-outline" style="width:100%;margin-bottom:12px" onclick="addMyAnime()">+ Anime</button>
+          <h3 class="edit-h3">Spotify (lien playlist)</h3>
+          <input type="text" id="mySpotify" class="input" placeholder="https://open.spotify.com/playlist/...">
+          <h3 class="edit-h3">Playlist MP3</h3>
+          <div id="myPlaylistEditor"></div>
+          <input type="text" id="myTrackTitle" class="input" placeholder="Titre">
+          <input type="text" id="myTrackArtist" class="input" placeholder="Artiste">
+          <div class="upload-row">
+            <input type="text" id="myTrackUrl" class="input" placeholder="Lien MP3 ou upload">
+            <label class="upload-btn">📁<input type="file" accept="audio/*,.mp3" hidden data-target="myTrackUrl" onchange="uploadMusicFile(this)"></label>
+          </div>
+          <button type="button" class="btn btn-outline" style="width:100%;margin-bottom:10px" onclick="addMyTrack()">+ Musique</button>
+        </div>
+        <!-- SECURITY / COMPTE -->
+        <div id="ds-security" class="ds-panel" style="display:none">
+          <div id="securityBox" class="sec-box">
+            <div id="emailVerifyStatus">Email : …</div>
+            <button type="button" class="btn btn-outline" style="margin-top:8px;width:100%" onclick="resendVerification()">Renvoyer conf. email</button>
+            <label class="switch-label" style="margin-top:10px">
+              <input type="checkbox" id="my2FA"><span>A2F email</span>
+            </label>
+
+            <h3 class="edit-h3" style="margin-top:14px">A2F Google Authenticator</h3>
+            <p class="hint">TOTP (Authy, Google Authenticator, Microsoft Authenticator…)</p>
+            <div id="totpSetupBox">
+              <div id="totpStatus" class="hint">Non activé</div>
+              <button type="button" class="btn btn-outline" style="width:100%;margin-top:6px" onclick="startTotpSetup()">Activer Authenticator</button>
+              <div id="totpQrWrap" style="display:none;margin-top:10px;text-align:center">
+                <p class="hint">Scanne ce secret dans ton app :</p>
+                <code id="totpSecretCode" class="totp-secret"></code>
+                <input type="text" id="totpVerifyCode" class="input" placeholder="Code à 6 chiffres" maxlength="6" inputmode="numeric">
+                <button type="button" class="btn-primary" style="width:100%" onclick="confirmTotpSetup()">Confirmer</button>
+              </div>
+              <button type="button" class="btn btn-outline" style="width:100%;margin-top:6px;display:none" id="totpDisableBtn" onclick="disableTotp()">Désactiver Authenticator</button>
+            </div>
+
+            <h3 class="edit-h3" style="margin-top:14px">Clé d’accès & biométrie</h3>
+            <p class="hint">Passkey / Face ID / empreinte (WebAuthn)</p>
+            <div id="passkeyStatus" class="hint">Aucune clé enregistrée</div>
+            <button type="button" class="btn btn-outline" style="width:100%;margin-top:6px" onclick="registerPasskey()">Ajouter une clé d’accès</button>
+            <button type="button" class="btn btn-outline" style="width:100%;margin-top:6px" onclick="removePasskeys()">Supprimer les clés</button>
+
+            <h3 class="edit-h3" style="margin-top:14px">Téléphone (privé)</h3>
+            <p class="hint">Visible uniquement par toi et les admins — jamais sur le profil public.</p>
+            <input type="tel" id="myPhonePrivate" class="input" placeholder="+33 6 …" autocomplete="tel">
+            <button type="button" class="btn btn-outline" style="width:100%;margin-top:6px" onclick="savePrivatePhone()">Enregistrer le numéro</button>
+          </div>
+          <p class="hint" id="myProfileLink"></p>
+          <p class="hint" style="margin-top:8px">🔒 Messages (DM, chat public, vocal text) chiffrés côté client — illisibles hors session (admins peuvent modérer).</p>
+
+          <h3 class="edit-h3" style="margin-top:18px">Comptes connectés</h3>
+          <p class="hint">Lie tes plateformes — les données publiques s’affichent sur ton profil.</p>
+
+          <!-- STEAM -->
+          <div class="linked-card" id="linkCardSteam">
+            <div class="linked-head">
+              <span class="linked-icon">🎮</span>
+              <div><strong>Steam</strong><div class="hint" id="steamStatus">Non connecté</div></div>
+            </div>
+            <input type="text" id="linkSteamInput" class="input" placeholder="ID Steam, vanity URL ou profil…">
+            <div class="linked-actions">
+              <button type="button" class="btn-primary" style="flex:1;margin:0" onclick="connectSteam()">Connecter</button>
+              <button type="button" class="btn btn-outline" style="margin:0" onclick="disconnectLinked('steam')">Retirer</button>
+            </div>
+            <p class="hint">Ex: 76561198… ou https://steamcommunity.com/id/pseudo</p>
+          </div>
+
+          <!-- SPOTIFY -->
+          <div class="linked-card" id="linkCardSpotify">
+            <div class="linked-head">
+              <span class="linked-icon">🎧</span>
+              <div><strong>Spotify</strong><div class="hint" id="spotifyStatus">Non connecté</div></div>
+            </div>
+            <input type="text" id="linkSpotifyInput" class="input" placeholder="Lien profil ou playlist Spotify…">
+            <div class="linked-actions">
+              <button type="button" class="btn-primary" style="flex:1;margin:0" onclick="connectSpotify()">Connecter</button>
+              <button type="button" class="btn btn-outline" style="margin:0" onclick="disconnectLinked('spotify')">Retirer</button>
+            </div>
+          </div>
+
+          <!-- BATTLENET -->
+          <div class="linked-card" id="linkCardBattlenet">
+            <div class="linked-head">
+              <span class="linked-icon">⚔️</span>
+              <div><strong>Battle.net</strong><div class="hint" id="battlenetStatus">Non connecté</div></div>
+            </div>
+            <input type="text" id="linkBattlenetInput" class="input" placeholder="BattleTag (ex: Pseudo#1234)">
+            <div class="linked-actions">
+              <button type="button" class="btn-primary" style="flex:1;margin:0" onclick="connectBattlenet()">Connecter</button>
+              <button type="button" class="btn btn-outline" style="margin:0" onclick="disconnectLinked('battlenet')">Retirer</button>
+            </div>
+          </div>
+
+          <!-- DISCORD -->
+          <div class="linked-card" id="linkCardDiscord">
+            <div class="linked-head">
+              <span class="linked-icon">💬</span>
+              <div><strong>Discord</strong><div class="hint" id="discordStatus">Non connecté</div></div>
+            </div>
+            <input type="text" id="linkDiscordInput" class="input" placeholder="Pseudo ou lien discord.gg / discord.com/users/…">
+            <div class="linked-actions">
+              <button type="button" class="btn-primary" style="flex:1;margin:0" onclick="connectDiscordLinked()">Connecter</button>
+              <button type="button" class="btn btn-outline" style="margin:0" onclick="disconnectLinked('discord')">Retirer</button>
+            </div>
+          </div>
+
+          <!-- GOOGLE -->
+          <div class="linked-card" id="linkCardGoogle">
+            <div class="linked-head">
+              <span class="linked-icon">🔵</span>
+              <div><strong>Google</strong><div class="hint" id="googleStatus">Non lié</div></div>
+            </div>
+            <div class="linked-actions">
+              <button type="button" class="btn-primary" style="flex:1;margin:0" onclick="linkGoogleAccount()">Lier Google</button>
+              <button type="button" class="btn btn-outline" style="margin:0" onclick="unlinkGoogleAccount()">Retirer</button>
+            </div>
+            <p class="hint">OAuth Firebase — connexion rapide & avatar Google</p>
+          </div>
+
+          <!-- TWITCH -->
+          <div class="linked-card" id="linkCardTwitch">
+            <div class="linked-head">
+              <span class="linked-icon">🟣</span>
+              <div><strong>Twitch</strong><div class="hint" id="twitchStatus">Non connecté</div></div>
+            </div>
+            <input type="text" id="linkTwitchInput" class="input" placeholder="Pseudo Twitch ou lien…">
+            <div class="linked-actions">
+              <button type="button" class="btn-primary" style="flex:1;margin:0" onclick="connectTwitch()">Connecter</button>
+              <button type="button" class="btn btn-outline" style="margin:0" onclick="disconnectLinked('twitch')">Retirer</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="ds-footer">
+        <button type="button" class="btn-primary" onclick="saveMyProfile()">Enregistrer</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ADMIN PAGE (separate full view) -->
+  <div id="adminPage" class="admin-page" style="display:none">
+    <header class="admin-top">
+      <button type="button" class="btn btn-outline" onclick="closeAdminPage()">← Retour site</button>
+      <h1>Panel Admin XULTRA</h1>
+    </header>
+    <div class="admin-layout">
+      <nav class="admin-nav">
+        <button class="admin-nav-btn active" onclick="showAdminTab('post')">Posts</button>
+        <button class="admin-nav-btn" onclick="showAdminTab('music')">Musique globale</button>
+        <button class="admin-nav-btn" onclick="showAdminTab('gallery')">Galerie</button>
+        <button class="admin-nav-btn" onclick="showAdminTab('voice')">Vocal</button>
+        <button class="admin-nav-btn" onclick="showAdminTab('video')">Vidéos</button>
+        <button class="admin-nav-btn" onclick="showAdminTab('home')">Accueil / Layout</button>
+        <button class="admin-nav-btn" onclick="showAdminTab('users')">Users</button>
+        <button class="admin-nav-btn" onclick="showAdminTab('roles')">Grades</button>
+        <button class="admin-nav-btn" onclick="showAdminTab('visits')">Visites</button>
+      </nav>
+      <div class="admin-content">
+        <div id="tab-post" class="admin-panel">
+          <h3>Publier un post</h3>
+          <textarea id="adminPost" placeholder="Nouveau post..." rows="4" class="input"></textarea>
+          <button type="button" class="btn-primary" onclick="adminPublish()">Publier</button>
+        </div>
+        <div id="tab-music" class="admin-panel" style="display:none">
+          <h3>Playlist globale (accueil)</h3>
+          <input type="text" id="musicTitle" placeholder="Titre" class="input">
+          <input type="text" id="musicArtist" placeholder="Artiste" class="input">
+          <div class="upload-row">
+            <input type="text" id="musicUrl" class="input" placeholder="Lien MP3 ou upload →">
+            <label class="upload-btn">📁<input type="file" accept="audio/*,.mp3,.ogg,.wav,.m4a" hidden data-target="musicUrl" onchange="uploadMusicFile(this)"></label>
+          </div>
+          <p id="musicUploadStatus" class="hint"></p>
+          <button type="button" class="btn-primary" onclick="addMusic()">Ajouter</button>
+          <div id="adminPlaylist" style="margin-top:12px"></div>
+        </div>
+        <div id="tab-gallery" class="admin-panel" style="display:none">
+          <label class="switch-label"><input type="checkbox" id="galleryToggle" onchange="toggleGallery()"><span>Activer galerie publique</span></label>
+          <div class="upload-row" style="margin-top:10px">
+            <input type="text" id="galleryUrl" class="input" placeholder="URL image">
+            <label class="upload-btn">📁<input type="file" accept="image/*" hidden onchange="uploadImgbb(this,'galleryUrl')"></label>
+          </div>
+          <input type="text" id="galleryCaption" class="input" placeholder="Légende">
+          <button type="button" class="btn-primary" onclick="addGalleryImage()">Ajouter</button>
+          <div id="adminGallery" style="margin-top:10px"></div>
+        </div>
+        <div id="tab-voice" class="admin-panel" style="display:none">
+          <h3 class="edit-h3">Paramètres vocaux</h3>
+          <p class="hint">Réglages globaux (style Discord) — enregistrer pour appliquer.</p>
+          <label class="field-label">Durée max d'inactivité (minutes)</label>
+          <input type="number" id="voiceAfkMin" class="input" min="1" max="120" value="5">
+          <label class="field-label">Limite d'utilisateurs par défaut (0 = illimité)</label>
+          <input type="number" id="voiceDefaultLimit" class="input" min="0" max="50" value="0">
+          <label class="switch-label"><input type="checkbox" id="voiceRequireLogin" checked><span>Connexion obligatoire pour rejoindre</span></label>
+          <label class="switch-label"><input type="checkbox" id="voiceAllowCamDefault" checked><span>Caméra autorisée par défaut</span></label>
+          <label class="switch-label"><input type="checkbox" id="voiceAllowScreenDefault" checked><span>Partage d'écran autorisé par défaut</span></label>
+          <label class="switch-label"><input type="checkbox" id="voiceHideEmpty" checked><span>Masquer les salons vides dans la liste</span></label>
+          <label class="field-label">Message salon (affiché sous le nom)</label>
+          <input type="text" id="voiceGlobalHint" class="input" placeholder="ex: Respecte les autres, micro push-to-talk si bruit">
+          <button type="button" class="btn-primary" style="width:100%;margin:10px 0 18px" onclick="saveVoiceGlobalSettings()">Enregistrer paramètres vocaux</button>
+
+          <h3 class="edit-h3">Catégories vocales</h3>
+          <input type="text" id="voiceCatName" class="input" placeholder="Nom catégorie (ex: Général)">
+          <button type="button" class="btn btn-outline" style="width:100%;margin-bottom:12px" onclick="adminAddVoiceCategory()">+ Catégorie</button>
+          <div id="adminVoiceCats"></div>
+
+          <h3 class="edit-h3">Salons vocaux</h3>
+          <select id="voiceRoomCat" class="input"><option value="">Sans catégorie</option></select>
+          <input type="text" id="voiceRoomName" class="input" placeholder="Nom du salon">
+          <button type="button" class="btn btn-outline" style="width:100%;margin-bottom:12px" onclick="adminAddVoiceRoom()">+ Salon vocal</button>
+          <div id="adminVoiceRooms"></div>
+
+          <div id="voiceRoomEditBox" class="voice-room-edit" style="display:none;margin-top:14px">
+            <h3 class="edit-h3">Éditer le salon</h3>
+            <input type="hidden" id="vrEditId" value="">
+            <label class="field-label">Nom</label>
+            <input type="text" id="vrEditName" class="input">
+            <label class="field-label">Catégorie</label>
+            <select id="vrEditCat" class="input"></select>
+            <label class="field-label">Limite d'utilisateurs (0 = illimité)</label>
+            <input type="number" id="vrEditLimit" class="input" min="0" max="50" value="0">
+            <label class="field-label">Ordre (plus petit = plus haut)</label>
+            <input type="number" id="vrEditOrder" class="input" value="0">
+            <label class="switch-label"><input type="checkbox" id="vrEditLocked"><span>Salon verrouillé (admin/modo seulement)</span></label>
+            <label class="switch-label"><input type="checkbox" id="vrEditAllowCam" checked><span>Autoriser la caméra</span></label>
+            <label class="switch-label"><input type="checkbox" id="vrEditAllowScreen" checked><span>Autoriser le partage d'écran</span></label>
+            <label class="field-label">Description / note</label>
+            <input type="text" id="vrEditDesc" class="input" placeholder="Optionnel">
+            <div style="display:flex;gap:8px;margin-top:10px">
+              <button type="button" class="btn-primary" style="flex:1" onclick="adminSaveVoiceRoomEdit()">Enregistrer salon</button>
+              <button type="button" class="btn btn-outline" onclick="closeVoiceRoomEdit()">Annuler</button>
+            </div>
+          </div>
+        </div>
+        <div id="tab-video" class="admin-panel" style="display:none">
+          <h3>Vidéos accueil</h3>
+          <input type="text" id="videoTitle" class="input" placeholder="Titre">
+          <input type="text" id="videoUrl" class="input" placeholder="YouTube / Vimeo / MP4">
+          <button type="button" class="btn-primary" onclick="addHomeVideo()">Ajouter</button>
+          <div id="adminVideos" style="margin-top:12px"></div>
+        </div>
+        <div id="tab-home" class="admin-panel" style="display:none">
+          <h3>Personnalisation accueil</h3>
+          <label class="field-label">Disposition colonnes</label>
+          <select id="homeLayoutPreset" class="input">
+            <option value="default">3 colonnes (défaut)</option>
+            <option value="wide-center">Centre large</option>
+            <option value="left-heavy">Gauche large</option>
+            <option value="right-heavy">Droite large</option>
+            <option value="stacked">Empilé (1 colonne)</option>
+            <option value="swap-sides">Inverser gauche/droite</option>
+            <option value="hide-left">Masquer gauche</option>
+            <option value="hide-right">Masquer droite</option>
+            <option value="center-only">Centre seul</option>
+          </select>
+          <label class="field-label">Ordre des blocs (centre)</label>
+          <div id="homeBlockOrder" class="home-block-order"></div>
+          <p class="hint">Utilise ↑ ↓ puis Enregistrer accueil</p>
+          <label class="field-label">Titre du site</label>
+          <input type="text" id="cfgSiteTitle" class="input" placeholder="XULTRA">
+          <label class="field-label">Sous-titre</label>
+          <input type="text" id="cfgSiteSub" class="input" placeholder="Ta bulle perso">
+          <label class="field-label">Compte X à embed (sans @)</label>
+          <input type="text" id="cfgXUser" class="input" placeholder="elonmusk">
+          <label class="field-label">Lofi autoplay volume (0-1)</label>
+          <input type="number" id="cfgLofiVol" class="input" min="0" max="1" step="0.05" value="0.4">
+          <label class="switch-label"><input type="checkbox" id="cfgLofiAuto" checked><span>Lofi auto au chargement</span></label>
+          <label class="field-label">Layout colonnes PC</label>
+          <select id="cfgLayout" class="input">
+            <option value="3col">3 colonnes (Discord-like)</option>
+            <option value="2col">2 colonnes</option>
+            <option value="feed">Feed centré large</option>
+          </select>
+
+          <h3 class="edit-h3" style="margin-top:18px">Widgets Hub d’accueil</h3>
+          <p class="hint">Affichés sous les boutons HUB sur la page centrale</p>
+          <label class="switch-label"><input type="checkbox" id="hubWenable-weather"><span>☁ Météo</span></label>
+          <label class="switch-label"><input type="checkbox" id="hubWenable-online"><span>🟢 Compteur en ligne</span></label>
+          <label class="switch-label"><input type="checkbox" id="hubWenable-changelog" checked><span>📋 Changelog</span></label>
+          <label class="switch-label"><input type="checkbox" id="hubWenable-chat"><span>💬 Mini chat public</span></label>
+          <label class="switch-label"><input type="checkbox" id="hubWenable-lives"><span>🔴 Lives en cours</span></label>
+
+          <h3 class="edit-h3" style="margin-top:18px">Mode maintenance</h3>
+          <label class="switch-label"><input type="checkbox" id="cfgMaintenance"><span>🔒 Site en maintenance</span></label>
+          <label class="field-label">Message affiché</label>
+          <textarea id="cfgMaintMsg" class="input" rows="3" placeholder="Des changements sont en cours…">Des changements sont en cours et des bugs sont en train d’être corrigés. Nous reviendrons bientôt.</textarea>
+          <p class="hint">Admins et modos peuvent toujours se connecter via le formulaire staff.</p>
+
+          <button type="button" class="btn-primary" onclick="saveHomeConfig()">Enregistrer accueil</button>
+        </div>
+        <div id="tab-users" class="admin-panel" style="display:none">
+          <h3>Utilisateurs</h3>
+          <div id="adminUsersList"></div>
+        </div>
+        <div id="tab-roles" class="admin-panel" style="display:none">
+          <h3>Grades & permissions</h3>
+          <p class="hint">Style Discord — crée des grades et coche les permissions.</p>
+          <button type="button" class="btn btn-outline" style="width:100%;margin-bottom:12px" onclick="seedDefaultRoles()">⚡ Générer les grades par défaut</button>
+          <div class="role-create">
+            <input type="text" id="roleName" class="input" placeholder="Nom du grade (ex: Modérateur)">
+            <input type="color" id="roleColor" value="#a78bfa" title="Couleur">
+            <input type="number" id="rolePos" class="input" placeholder="Position (plus haut = prioritaire)" value="10" min="0" max="999">
+            <button type="button" class="btn-primary" onclick="adminSaveRole()">Créer / mettre à jour</button>
+          </div>
+          <input type="hidden" id="roleEditId" value="">
+          <div id="rolePerms" class="role-perms"></div>
+          <div id="adminRolesList" style="margin-top:14px"></div>
+          <h3 class="edit-h3" style="margin-top:18px">Assigner un grade</h3>
+          <input type="text" id="roleAssignUser" class="input" placeholder="Pseudo (sans @)">
+          <select id="roleAssignSelect" class="input"></select>
+          <button type="button" class="btn-primary" onclick="adminAssignRole()">Assigner</button>
+        </div>
+        <div id="tab-visits" class="admin-panel" style="display:none">
+          <div id="visitsList"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- INBOX MODAL modern -->
+  <div id="inboxModal" class="modal" onclick="if(event.target===this)closeInbox()">
+    <div class="modal-box dm-box">
+      <button type="button" class="close-btn" onclick="closeInbox()">×</button>
+      <h2>Messages</h2>
+      <div id="inboxList"></div>
+      <div id="inboxThread" style="display:none">
+        <button type="button" class="btn btn-outline" style="margin-bottom:10px" onclick="backToInboxList()">← Retour</button>
+        <div id="threadWith" class="ua-name" style="margin-bottom:8px"></div>
+        <div id="threadMsgs" class="dm-messages"></div>
+        <form class="chat-input-row dm-input-row" onsubmit="sendDm(event)">
+          <button type="button" class="emoji-btn" onclick="toggleEmoji('dmInput', event)">😀</button>
+          <input type="text" id="dmInput" placeholder="Message..." maxlength="500" autocomplete="off">
+          <button type="submit">→</button>
+        </form>
+      </div>
+      <div id="inboxNew" style="display:none;margin-top:12px">
+        <input type="text" id="dmToUser" class="input" placeholder="Pseudo destinataire">
+        <textarea id="dmFirstMsg" class="input" rows="2" placeholder="Message..."></textarea>
+        <button type="button" class="btn-primary" onclick="startDm()">Envoyer</button>
+      </div>
+      <button type="button" class="btn btn-outline" style="width:100%;margin-top:12px" id="inboxNewBtn" onclick="showNewDm()">+ Nouveau message</button>
+    </div>
+  </div>
+
+  <div id="lightbox" class="lightbox" class="lightbox" onclick="closeLightbox()"><img id="lightboxImg" src="" alt=""></div>
+  <div id="playlistModal" class="modal" onclick="if(event.target===this)closePlaylist()">
+    <div class="modal-box"><button type="button" class="close-btn" onclick="closePlaylist()">×</button><h2>Playlist</h2><div id="playlistList"></div></div>
+  </div>
+
+  <!-- ========== HOME ========== -->
+  <!-- ===== HUB ACCUEIL (page principale) ===== -->
+  <div id="hubView" class="hub-view">
+    <div class="hub-inner">
+      <div class="hub-logo">XULTRA</div>
+      <p class="hub-tag">ta bulle · dark · neon</p>
+
+      <div class="hub-profile block-card" id="hubProfileCard">
+        <div id="hubGuest">
+          <div class="me-guest-tabs">
+            <button type="button" class="me-gtab active" id="hubTabLogin" onclick="hubSwitchAuth(false)">Connexion</button>
+            <button type="button" class="me-gtab" id="hubTabReg" onclick="hubSwitchAuth(true)">Inscription</button>
+          </div>
+          <input type="text" id="hubAuthUser" class="me-input" placeholder="Pseudo" style="display:none" maxlength="20">
+          <input type="email" id="hubAuthEmail" class="me-input" placeholder="Email">
+          <input type="password" id="hubAuthPass" class="me-input" placeholder="Mot de passe">
+          <button type="button" class="me-auth-btn" id="hubAuthBtn" onclick="hubHandleAuth()">Se connecter</button>
+          <p class="hint" id="hubAuthHint" style="margin:6px 0 0;text-align:center"></p>
+        </div>
+        <div id="hubLogged" style="display:none">
+          <div class="hub-me-top">
+            <img id="hubAvatar" class="hub-avatar" alt="">
+            <div>
+              <div class="hub-name" id="hubName">—</div>
+              <div class="hub-handle" id="hubHandle">@—</div>
+            </div>
+          </div>
+          <div class="hub-me-actions">
+            <button type="button" class="hub-act" onclick="openProfile()">👤 Profil</button>
+            <button type="button" class="hub-act" onclick="openAccountSettings()">⚙ Compte</button>
+            <button type="button" class="hub-act" onclick="openInbox()">✉ Messages</button>
+            <button type="button" class="hub-act" onclick="toggleNotifPanel()">🔔 Notifs</button>
+            <button type="button" class="hub-act" id="hubAdminBtn" style="display:none" onclick="openAdminPage()">🛡 Admin</button>
+            <button type="button" class="hub-act danger" onclick="logout()">⏻ Déco</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="hub-grid" id="hubGrid">
+        <button type="button" class="hub-tile" onclick="openVoiceHub()"><span>🎙</span>HUB Vocal</button>
+        <button type="button" class="hub-tile" onclick="openSocialHub()"><span>💬</span>HUB Social</button>
+        <button type="button" class="hub-tile" onclick="openAnimeHub()"><span>🎌</span>HUB Animés</button>
+        <button type="button" class="hub-tile" onclick="openGameHub()"><span>🐍</span>HUB Jeu</button>
+        <button type="button" class="hub-tile" onclick="openPasteHub()"><span>📝</span>HUB Pastebin</button>
+        <button type="button" class="hub-tile" onclick="openGalleryHub()"><span>🖼</span>Galerie</button>
+      </div>
+
+      <!-- Widgets hub (config admin) -->
+      <div class="hub-widgets" id="hubWidgets">
+        <div class="hub-widget" id="hubW-weather" style="display:none">
+          <div class="hw-title">☁ Météo</div>
+          <div id="hubWeatherBody" class="hw-body">…</div>
+        </div>
+        <div class="hub-widget" id="hubW-online" style="display:none">
+          <div class="hw-title">🟢 En ligne</div>
+          <div id="hubOnlineBody" class="hw-body">—</div>
+        </div>
+        <div class="hub-widget" id="hubW-changelog" style="display:none">
+          <div class="hw-title">📋 Changelog</div>
+          <div id="hubChangelogBody" class="hw-body hw-scroll"></div>
+        </div>
+        <div class="hub-widget hub-widget-wide" id="hubW-chat" style="display:none">
+          <div class="hw-title">💬 Chat public</div>
+          <div id="hubChatBody" class="hw-body hw-chat"></div>
+          <form class="hw-chat-form" onsubmit="sendHubChat(event)">
+            <input type="text" id="hubChatInput" class="input" placeholder="Écrire…" maxlength="300" autocomplete="off">
+            <button type="submit" class="btn-primary" style="margin:0">→</button>
+          </form>
+        </div>
+        <div class="hub-widget" id="hubW-lives" style="display:none">
+          <div class="hw-title">🔴 Lives</div>
+          <div id="hubLivesBody" class="hw-body">Aucun live</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MAINTENANCE -->
+  <div id="maintenanceView" class="maint-view" style="display:none">
+    <div class="maint-layout">
+      <div class="maint-card">
+        <div class="maint-logo">XULTRA</div>
+        <div class="maint-badge">Maintenance</div>
+        <h1 class="maint-title">Nous reviendrons bientôt</h1>
+        <p class="maint-desc" id="maintDesc">
+          Des changements sont en cours et des bugs sont en train d’être corrigés.
+          Merci de ta patience.
+        </p>
+
+        <!-- Lecteur musique maintenance -->
+        <div class="maint-player">
+          <div class="mp-meta">
+            <div class="mp-title" id="maintTrackTitle">—</div>
+            <div class="mp-artist" id="maintTrackArtist">Playlist XULTRA</div>
+          </div>
+          <div class="mp-controls">
+            <button type="button" class="mp-btn" onclick="maintPrev()">⏮</button>
+            <button type="button" class="mp-btn mp-play" id="maintPlayBtn" onclick="maintToggle()">▶️</button>
+            <button type="button" class="mp-btn" onclick="maintNext()">⏭</button>
+          </div>
+          <input type="range" id="maintVol" class="mp-vol" min="0" max="1" step="0.05" value="0.4" oninput="maintSetVol(this.value)">
+          <audio id="maintAudio" preload="metadata"></audio>
+        </div>
+        <div class="maint-playlist" id="maintPlaylistBox">
+          <div class="mp-pl-head">Playlist</div>
+          <div id="maintPlaylistList" class="mp-pl-list"><div class="hint">Chargement…</div></div>
+        </div>
+
+        <div class="maint-staff" id="maintStaffBox">
+          <p class="hint">Accès staff (admin / modo)</p>
+          <input type="email" id="maintEmail" class="input" placeholder="Email">
+          <input type="password" id="maintPass" class="input" placeholder="Mot de passe">
+          <button type="button" class="btn-primary" style="width:100%" onclick="maintStaffLogin()">Connexion staff</button>
+          <p class="error" id="maintErr"></p>
+        </div>
+      </div>
+
+      <!-- Changelog à part -->
+      <div class="maint-changelog">
+        <div class="mp-pl-head">📋 Changelog</div>
+        <div id="maintChangelogList" class="maint-cl-list"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Hubs secondaires (plein écran) -->
+  <div id="hubPageAnime" class="hub-page" style="display:none">
+    <header class="hub-page-head"><button type="button" class="btn btn-outline" onclick="closeHubPage()">← Hub</button><h2>HUB Animés</h2></header>
+    <div class="hub-page-body" id="animeHubBody"><div class="loading">Chargement…</div></div>
+  </div>
+  <div id="hubPagePaste" class="hub-page" style="display:none">
+    <header class="hub-page-head"><button type="button" class="btn btn-outline" onclick="closeHubPage()">← Hub</button><h2>HUB Pastebin</h2></header>
+    <div class="hub-page-body" id="pasteHubBody"><div class="loading">Chargement…</div></div>
+  </div>
+  <div id="hubPageGallery" class="hub-page" style="display:none">
+    <header class="hub-page-head"><button type="button" class="btn btn-outline" onclick="closeHubPage()">← Hub</button><h2>Galerie communauté</h2></header>
+    <div class="hub-page-body" id="galleryHubBody"><div class="loading">Chargement…</div></div>
+  </div>
+
+  <div id="homeView" class="app-shell" style="display:none">
+    <header class="app-header">
+      <a href="?" class="logo" onclick="showHome();return false;">XULTRA</a>
+      <button type="button" class="header-voice-btn" onclick="openVoiceHub()" title="Chat vocal">🎙 Vocal</button>
+      <div class="header-search-wrap">
+        <input type="search" id="userSearchInput" class="header-user-search" placeholder="Rechercher @pseudo ou nom…" autocomplete="off" oninput="onUserSearchInput(this.value)" onfocus="onUserSearchInput(this.value)" onkeydown="if(event.key==='Escape'){closeUserSearch()}">
+        <div id="userSearchResults" class="user-search-results" style="display:none"></div>
+      </div>
+      <div class="header-search" id="siteSubLabel" style="display:none">ta bulle</div>
+      <button type="button" class="header-game-btn" onclick="openSlitherGame()" title="Mini-jeu XULTRA Slither">🐍 Jouer</button>
+    </header>
+
+    <div class="app-grid" id="appGrid">
+      <!-- LEFT -->
+      <aside class="col-left block-card">
+        <div class="me-card" id="meCard">
+          <!-- Guest: login / register -->
+          <div id="meGuest">
+            <div class="me-guest-title">Bienvenue sur XULTRA</div>
+            <div class="me-guest-tabs">
+              <button type="button" class="me-gtab active" id="meTabLogin" onclick="meSwitchAuth(false)">Connexion</button>
+              <button type="button" class="me-gtab" id="meTabReg" onclick="meSwitchAuth(true)">Inscription</button>
+            </div>
+            <input type="text" id="meAuthUser" class="me-input" placeholder="Pseudo" style="display:none" maxlength="20" autocomplete="username">
+            <input type="email" id="meAuthEmail" class="me-input" placeholder="Email" autocomplete="email">
+            <input type="password" id="meAuthPass" class="me-input" placeholder="Mot de passe" autocomplete="current-password">
+            <button type="button" class="me-auth-btn" id="meAuthBtn" onclick="meHandleAuth()">Se connecter</button>
+            <p class="hint" id="meAuthHint" style="margin:6px 0 0;text-align:center"></p>
+          </div>
+          <!-- Logged in -->
+          <div id="meLogged" style="display:none">
+            <div class="me-top">
+              <img id="meAvatar" class="me-avatar" src="" alt="">
+              <div class="me-info">
+                <div class="me-name" id="meName">—</div>
+                <div class="me-handle" id="meHandle">@—</div>
+              </div>
+            </div>
+            <div class="me-status-row">
+              <select id="meStatus" class="me-select" onchange="saveQuickStatus()" title="Statut">
+                <option value="auto">Auto</option>
+                <option value="online">🟢 En ligne</option>
+                <option value="away">🟡 Absent</option>
+                <option value="dnd">🔴 Ne pas déranger</option>
+                <option value="offline">⚫ Invisible</option>
+              </select>
+              <input type="text" id="meMood" class="me-mood" maxlength="40" placeholder="Humeur du jour…" onchange="saveQuickMood()" onkeydown="if(event.key==='Enter'){this.blur()}">
+            </div>
+            <div class="me-actions">
+              <button type="button" class="me-btn" onclick="openProfile()" title="Profil">👤</button>
+              <button type="button" class="me-btn" onclick="openInbox()" title="Messages">✉</button>
+              <button type="button" class="me-btn" id="meAdminBtn" style="display:none" onclick="openAdminPage()" title="Admin">⚙</button>
+              <button type="button" class="me-btn danger" onclick="logout()" title="Déconnexion">⏻</button>
+            </div>
+          </div>
+        </div>
+        <div class="weather-widget" id="weatherWidget">
+          <div class="wx-main"><span id="wxIcon">☁</span> <span id="wxTemp">—°</span></div>
+          <div class="wx-city" id="wxCity">Météo locale…</div>
+          <div class="wx-desc" id="wxDesc"></div>
+        </div>
+        <h3 class="col-title">Amis</h3>
+        <div id="friendsList" class="friends-list"><div class="hint" style="padding:8px">Connecte-toi</div></div>
+        <div id="friendRequests" class="friend-requests"></div>
+        <h3 class="col-title" style="margin-top:16px">Communauté</h3>
+        <div id="membersList" class="members-list"></div>
+        <div class="online-pill"><span class="badge" id="onlineBadge">0 en ligne</span></div>
+      </aside>
+
+      <!-- CENTER -->
+      <main class="col-center">
+        <div id="createPost" class="block-card create-post home-block" data-block="createPost" style="display:none">
+          <textarea id="postContent" placeholder="Quoi de neuf ?" rows="3"></textarea>
+          <div style="display:flex;gap:8px;align-items:center">
+            <button type="button" class="emoji-btn" onclick="toggleEmoji('postContent', event)">😀</button>
+            <button type="button" class="btn-primary" style="margin:0;flex:1" onclick="publishPost()">Publier</button>
+          </div>
+        </div>
+
+        <section class="block-card" id="homeVideosSection" class="block-card home-block" data-block="videos" style="display:none">
+          <h3 class="col-title">Vidéos</h3>
+          <div id="homeVideos"></div>
+        </section>
+
+        <section class="block-card home-block" data-block="feed" id="block-feed">
+          <div class="feed-header"><h3 class="col-title">Fil d'actualité</h3><span class="badge">Live</span></div>
+          <div id="feed" class="feed"><div class="loading">Chargement...</div></div>
+        </section>
+
+        <section class="block-card home-block" data-block="chat" id="block-chat">
+          <div class="feed-header"><h3 class="col-title">Chat public</h3><span class="badge">Live</span></div>
+          <button type="button" class="voice-open-btn" id="voiceOpenBtn" onclick="openVoiceHub()">
+            🎙 Ouvrir le chat vocal
+          </button>
+          <div class="chat-box">
+            <div id="publicChat" class="chat-messages"><div class="loading">Chargement...</div></div>
+            <form class="chat-input-row" onsubmit="sendChat(event)">
+              <button type="button" class="emoji-btn" onclick="toggleEmoji('chatInput', event)">😀</button>
+              <input type="text" id="chatInput" placeholder="Écrire..." maxlength="300" autocomplete="off">
+              <button type="submit">→</button>
+            </form>
+          </div>
+        </section>
+
+        <section class="block-card home-block" data-block="gallery" id="block-gallery">
+          <h3 class="col-title">Galerie</h3>
+          <div id="galleryArea"></div>
+        </section>
+
+        <section class="block-card" id="changelog" class="home-block" data-block="changelog">
+          <h3 class="col-title">Changelog</h3>
+          <div class="changelog-list">
+            <div class="cl-item"><span class="cl-date">1 août 2026</span><span class="cl-tag">PWA</span> App installable (manifest, offline shell, Android/Desktop)</div>
+            <div class="cl-item"><span class="cl-date">1 août 2026</span><span class="cl-tag">Admin</span> Widgets hub + mode maintenance staff</div>
+            <div class="cl-item"><span class="cl-date">1 août 2026</span><span class="cl-tag">Hub</span> Accueil centré + Hubs Vocal/Social/Animés/Jeu/Paste/Galerie</div>
+            <div class="cl-item"><span class="cl-date">1 août 2026</span><span class="cl-tag">Sécu</span> TOTP Authenticator, Passkeys, téléphone privé, chat chiffré</div>
+            <div class="cl-item"><span class="cl-date">1 août 2026</span><span class="cl-tag">Stream</span> Twitch/Kick/YT actifs — OBS natif en maintenance</div>
+            <div class="cl-item"><span class="cl-date">1 août 2026</span><span class="cl-tag">Stream</span> Mode OBS/HLS sans Twitch (Cloudflare Stream + player)</div>
+            <div class="cl-item"><span class="cl-date">1 août 2026</span><span class="cl-tag">Stream</span> Live profil : Twitch, YouTube, Kick, HLS/OBS + Go Live</div>
+            <div class="cl-item"><span class="cl-date">1 août 2026</span><span class="cl-tag">Comptes</span> Steam / Spotify / Battle.net / Google / Twitch / Discord liés + bibliothèque Steam</div>
+            <div class="cl-item"><span class="cl-date">1 août 2026</span><span class="cl-tag">Maps</span> Recherche lieux (OSM) + embed carte sur les profils</div>
+            <div class="cl-item"><span class="cl-date">1 août 2026</span><span class="cl-tag">Profil</span> Dernière connexion date + heure affichée</div>
+            <div class="cl-item"><span class="cl-date">1 août 2026</span><span class="cl-tag">Profil</span> Studio liens style Linktree — presets, Featured, icônes, Maps, fichiers</div>
+            <div class="cl-item"><span class="cl-date">1 août 2026</span><span class="cl-tag">Notes</span> Pastebin complet : tags, syntaxe, mdp, burn, dossiers, expiration</div>
+            <div class="cl-item"><span class="cl-date">1 août 2026</span><span class="cl-tag">Auth</span> Auto-fix #tag à l’inscription (@pseudo#4821)</div>
+            <div class="cl-item"><span class="cl-date">1 août 2026</span><span class="cl-tag">UI</span> Dark neon aesthetic, handles uniques, recherche users</div>
+            <div class="cl-item"><span class="cl-date">1 août 2026</span><span class="cl-tag">Vocal</span> Hub séparé, salons, cam, screen share, grades & perms</div>
+            <div class="cl-item"><span class="cl-date">1 août 2026</span><span class="cl-tag">Live</span> Heartbeat présence, anti-ghosts vocal & membres</div>
+            <div class="cl-item"><span class="cl-date">1 août 2026</span><span class="cl-tag">Jeu</span> Slither maison — minimap, bordure, dash double-clic</div>
+            <div class="cl-item"><span class="cl-date">1 août 2026</span><span class="cl-tag">Inbox</span> Notifications popup iOS, lu/non-lu, suppression</div>
+            <div class="cl-item"><span class="cl-date">31 jul 2026</span><span class="cl-tag">Admin</span> Grades Discord-like, ban/mute, IP, dispositions home</div>
+            <div class="cl-item"><span class="cl-date">30 jul 2026</span><span class="cl-tag">Live</span> Chat public & DM temps réel</div>
+            <div class="cl-item"><span class="cl-date">30 jul 2026</span><span class="cl-tag">Profil</span> Thèmes, galerie, playlist, particules, fond GIF/vidéo</div>
+            <div class="cl-item"><span class="cl-date">29 jul 2026</span><span class="cl-tag">Base</span> Auth Firebase, fil, likes, commentaires</div>
+          </div>
+        </section>
+      </main>
+
+      <!-- RIGHT -->
+      <aside class="col-right">
+        <div class="block-card">
+          <h3 class="col-title">🎵 Lofi</h3>
+          <div class="mini-player-info">
+            <img id="trackCover" class="track-cover" src="" alt="" style="display:none">
+            <div>
+              <div id="trackTitle" class="track-title">Aucune musique</div>
+              <div id="trackArtist" class="track-artist">—</div>
+            </div>
+          </div>
+          <div class="controls mini-controls">
+            <button type="button" onclick="prevTrack()">⏮</button>
+            <button type="button" class="play-main" id="playBtn" onclick="togglePlay()">▶️</button>
+            <button type="button" onclick="nextTrack()">⏭</button>
+            <button type="button" onclick="openPlaylist()">☰</button>
+          </div>
+        </div>
+        <div class="block-card" id="xEmbedCard">
+          <h3 class="col-title">Actualités X</h3>
+          <div id="xEmbedBox" class="x-embed-box">
+            <a class="twitter-timeline" id="xTimelineLink" data-theme="dark" data-height="420" href="https://twitter.com/X">Posts</a>
+          </div>
+        </div>
+      </aside>
+    </div>
+    <footer class="footer">xultra.spac<a href="#" class="screamer-seed" onclick="triggerScreamer(event);return false;" title="">e</a></footer>
+  </div>
+
+  <!-- ========== VOICE HUB (zone séparée) ========== -->
+  <div id="voiceHubView" class="voice-hub" style="display:none">
+    <header class="vh-header">
+      <button type="button" class="vh-back" onclick="closeVoiceHub()">← Site</button>
+      <div class="vh-brand">XULTRA <span>Vocal</span></div>
+      <div class="vh-user" id="vhUserPill">—</div>
+    </header>
+    <div class="vh-grid">
+      <aside class="vh-side">
+        <div class="vh-side-title">Salons</div>
+        <div class="voice-channels" id="voiceChannelsList">
+          <div class="hint" style="padding:6px">Chargement…</div>
+        </div>
+        <p class="hint" id="vhGlobalHint" style="padding:6px 8px"></p>
+      </aside>
+      <main class="vh-main">
+        <div class="voice-bar" id="voiceBar">
+          <div class="voice-left">
+            <span class="voice-icon">🎙</span>
+            <div>
+              <div class="voice-title" id="voiceActiveName">Aucun salon</div>
+              <div class="voice-subs" id="voiceSubs">Choisis un salon à gauche</div>
+            </div>
+          </div>
+          <div class="voice-actions">
+            <button type="button" class="voice-btn" id="voiceSettingsBtn" onclick="toggleVoiceSettings()" title="Réglages">⚙</button>
+            <button type="button" class="voice-btn" id="voiceMuteBtn" style="display:none" onclick="toggleVoiceMute()" title="Mute">🔇</button>
+            <button type="button" class="voice-btn" id="voiceCamBtn" style="display:none" onclick="toggleVoiceCam()" title="Caméra">📷</button>
+            <button type="button" class="voice-btn" id="voiceScreenBtn" style="display:none" onclick="toggleScreenShare()" title="Partage d'écran">🖥️</button>
+            <button type="button" class="voice-btn join" id="voiceJoinBtn" onclick="toggleVoiceRoom()" disabled>Rejoindre</button>
+          </div>
+        </div>
+        <div class="voice-settings" id="voiceSettings" style="display:none">
+          <div class="vs-row">
+            <label>Micro d'entrée</label>
+            <select id="voiceInputDevice" class="input" onchange="changeVoiceInput()"></select>
+          </div>
+          <div class="vs-row">
+            <label>Sortie audio</label>
+            <select id="voiceOutputDevice" class="input" onchange="changeVoiceOutput()"></select>
+          </div>
+          <div class="vs-row">
+            <label>Volume micro <span id="voiceInVolLabel">100%</span></label>
+            <input type="range" id="voiceInVol" min="0" max="100" value="100" oninput="setVoiceInVol(this.value)">
+          </div>
+          <div class="vs-row">
+            <label>Volume écoute <span id="voiceOutVolLabel">100%</span></label>
+            <input type="range" id="voiceOutVol" min="0" max="100" value="100" oninput="setVoiceOutVol(this.value)">
+          </div>
+          <div class="vs-row">
+            <label>Niveau micro</label>
+            <div class="voice-meter"><div class="voice-meter-fill" id="voiceMeterFill"></div></div>
+          </div>
+          <div class="vs-row vs-actions">
+            <button type="button" class="voice-btn" id="voiceTestBtn" onclick="toggleVoiceTest()">🎧 Tester mon micro</button>
+            <span class="hint" id="voiceTestHint">Tu dois t'entendre en local</span>
+          </div>
+          <div class="vs-row">
+            <label class="switch-label"><input type="checkbox" id="voiceEcho" checked onchange="rebuildVoiceConstraints()"> Anti-écho</label>
+            <label class="switch-label"><input type="checkbox" id="voiceNoise" checked onchange="rebuildVoiceConstraints()"> Anti-bruit</label>
+          </div>
+          <p class="hint" id="voiceDebug" style="margin-top:6px"></p>
+        </div>
+        <div class="voice-members" id="voiceMembers" style="display:none"></div>
+        <div class="voice-videos" id="voiceVideos" style="display:none"></div>
+        <section class="vh-room-chat block-card">
+          <div class="feed-header">
+            <h3 class="col-title">Chat du salon</h3>
+            <span class="badge" id="vhChatRoomLabel">—</span>
+          </div>
+          <div id="voiceRoomChat" class="chat-messages vh-chat"><div class="hint">Sélectionne un salon</div></div>
+          <form class="chat-input-row" onsubmit="sendVoiceRoomChat(event)">
+            <button type="button" class="emoji-btn" onclick="toggleEmoji('voiceChatInput', event)">😀</button>
+            <input type="text" id="voiceChatInput" placeholder="Message du salon vocal…" maxlength="400" autocomplete="off">
+            <button type="submit">→</button>
+          </form>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <!-- VOICE CAM FOCUS -->
+  <div id="voiceFocus" class="voice-focus" style="display:none" onclick="if(event.target===this)closeVoiceFocus()">
+    <button type="button" class="voice-focus-close" onclick="closeVoiceFocus()">×</button>
+    <div class="voice-focus-thumbs" id="voiceFocusThumbs"></div>
+    <div class="voice-focus-main">
+      <video id="voiceFocusVideo" autoplay playsinline></video>
+      <div class="voice-focus-name" id="voiceFocusName"></div>
+    </div>
+  </div>
+
+  <!-- SLITHER GAME -->
+  <div id="slitherView" class="slither-view" style="display:none">
+    <div class="slither-hud">
+      <button type="button" class="slither-back" onclick="closeSlitherGame()">← XULTRA</button>
+      <div class="slither-score">Score <span id="slitherScore">0</span></div>
+      <div class="slither-online"><span id="slitherOnline">0</span> en jeu</div>
+      <select id="slitherSkin" class="slither-skin" onchange="setSlitherSkin(this.value)">
+        <option value="violet">Violet</option>
+        <option value="neon">Néon</option>
+        <option value="gold">Or</option>
+        <option value="mint">Menthe</option>
+        <option value="fire">Feu</option>
+        <option value="ice">Glace</option>
+        <option value="rainbow">Rainbow</option>
+        <option value="void">Void</option>
+      </select>
+      <select id="slitherControls" class="slither-skin" title="Contrôles">
+        <option value="mouse">Souris</option>
+        <option value="relative">Souris relative</option>
+        <option value="keys">Clavier WASD / flèches</option>
+      </select>
+      <button type="button" class="slither-play" id="slitherPlayBtn" onclick="startSlither()">Jouer</button>
+    </div>
+    <canvas id="slitherCanvas"></canvas>
+    <div class="slither-overlay" id="slitherOverlay">
+      <div class="slither-title">XULTRA Slither</div>
+      <div class="slither-sub">Carte ronde · bordure rouge · boost · minimap · multi</div>
+      <div class="slither-help">
+        <div><b>Diriger</b> — souris / doigt ou WASD</div>
+        <div><b>Boost</b> — clic maintenu, Espace, ou double-clic</div>
+        <div><b>Mort</b> — bordure rouge ou collision avec un autre serpent</div>
+      </div>
+      <button type="button" class="btn-primary" onclick="startSlither()">Entrer dans l'arène</button>
+      <p class="hint" style="margin-top:12px">Astuce : le boost brûle de la masse mais te rend plus rapide</p>
+    </div>
+  </div>
+
+  <!-- PROFILE VIEW -->
+  <main class="container" id="profileView" style="display:none">
+    <header class="pv-topnav" id="pvTopNav">
+      <a href="?" class="pv-logo" onclick="showHome();return false;">XULTRA</a>
+      <button type="button" class="header-voice-btn" onclick="openVoiceHub()" title="Chat vocal">🎙 Vocal</button>
+      <nav class="pv-tabs" id="pvTabs">
+        <button type="button" class="pv-tab active" onclick="showPvTab('links',this)">Liens</button>
+        <button type="button" class="pv-tab" onclick="showPvTab('anime',this)">Animés</button>
+        <button type="button" class="pv-tab" onclick="showPvTab('music',this)">Musique</button>
+        <button type="button" class="pv-tab" onclick="showPvTab('gallery',this)">Galerie</button>
+        <button type="button" class="pv-tab" onclick="showPvTab('accounts',this)">Comptes</button>
+        <button type="button" class="pv-tab" onclick="showPvTab('stream',this)">Stream</button>
+        <button type="button" class="pv-tab" onclick="showPvTab('notes',this)">Notes</button>
+      </nav>
+    </header>
+    <div class="pv-header" id="pvHeader">
+      <div class="avatar-wrapper" id="pvAvatarWrap">
+        <div class="avatar-ring"></div>
+        <img id="pvAvatar" class="avatar" src="" alt="" onerror="this.src='https://ui-avatars.com/api/?name=U&background=7c3aed&color=fff&size=200&bold=true'">
+        <div class="status-dot" id="pvDot" style="display:none"></div>
+        <div class="av-edit-overlay" id="avEditOverlay" style="display:none">
+          <label class="av-edit-btn" title="Changer">📷<input type="file" accept="image/*,.gif" hidden onchange="inlineUploadAvatar(this)"></label>
+          <button type="button" class="av-edit-btn" title="Supprimer" onclick="inlineRemoveAvatar()">🗑</button>
+        </div>
+      </div>
+      <h1 class="name pv-editable" id="pvName">—<button type="button" class="inline-edit-btn" id="nameEditBtn" style="display:none" onclick="inlineEditName()">✎</button></h1>
+      <div id="nameEditBox" class="inline-edit-box" style="display:none">
+        <div style="display:flex;gap:6px;align-items:center">
+          <button type="button" class="emoji-btn" onclick="toggleEmoji('inlineNameInput', event)">😀</button>
+          <input type="text" id="inlineNameInput" class="input" maxlength="40" style="flex:1">
+        </div>
+        <div style="display:flex;gap:6px;margin-top:6px">
+          <button type="button" class="btn-primary" style="flex:1;margin:0" onclick="inlineSaveName()">OK</button>
+          <button type="button" class="btn btn-outline" style="margin:0" onclick="document.getElementById('nameEditBox').style.display='none'">✕</button>
+        </div>
+      </div>
+      <p class="handle" id="pvHandle">@—</p>
+      <p class="pv-last-seen" id="pvLastSeen" style="display:none"></p>
+      <div class="pv-badges" id="pvBadges"></div>
+      <div id="pvLogoWrap" style="display:none;text-align:center;margin-bottom:8px"><img id="pvLogo" alt="" style="max-height:40px;max-width:160px"></div>
+      <div class="pv-share-row" id="pvShareRow">
+        <button type="button" class="btn btn-outline" style="font-size:.75rem;padding:6px 12px" onclick="shareProfile()">↗ Partager</button>
+        <button type="button" class="btn btn-outline" style="font-size:.75rem;padding:6px 12px" onclick="showProfileQR()">QR</button>
+      </div>
+      <div id="pvQR" style="display:none;text-align:center;margin:10px 0"></div>
+      <input type="file" id="peAvatarFile" accept="image/*,.gif" hidden onchange="peUploadAvatar(this)">
+    <input type="file" id="peGalFile" accept="image/*" hidden onchange="peUploadGallery(this)">
+    <video id="pvBgVideo" muted loop playsinline autoplay style="display:none;position:fixed;inset:0;width:100%;height:100%;object-fit:cover;z-index:-1;opacity:.88;pointer-events:none"></video>
+      <div class="status pv-editable" id="pvBioWrap" style="display:none">
+        <span id="pvBio"></span>
+        <button type="button" class="inline-edit-btn" id="bioEditBtn" style="display:none" onclick="inlineEditBio()">✎</button>
+      </div>
+      <div id="bioEditBox" class="inline-edit-box" style="display:none">
+        <div style="display:flex;gap:6px;align-items:flex-start">
+          <button type="button" class="emoji-btn" onclick="toggleEmoji('inlineBioInput', event)">😀</button>
+          <textarea id="inlineBioInput" class="input" maxlength="200" rows="3" placeholder="Ta bio..." style="flex:1"></textarea>
+        </div>
+        <div style="display:flex;gap:6px;margin-top:6px">
+          <button type="button" class="btn-primary" style="flex:1;margin:0" onclick="inlineSaveBio()">OK</button>
+          <button type="button" class="btn btn-outline" style="margin:0" onclick="inlineCancelBio()">✕</button>
+        </div>
+      </div>
+    </div>
+    <div class="pv-actions" id="pvActions" style="display:none;margin-bottom:16px;gap:8px;flex-wrap:wrap;justify-content:center">
+      <button type="button" class="btn" id="btnMsgProfile" onclick="dmThisProfile()">✉ Message</button>
+      <button type="button" class="btn btn-outline" id="btnFriend" onclick="toggleFriendAction()">+ Ami</button>
+    </div>
+    <div class="links" id="pvSocials"></div>
+    <div class="pv-section-tools" id="pvSectionTools" style="display:none">
+      <button type="button" class="sec-tool" id="toolAddLink" onclick="inlineAddLink()">+ Lien</button>
+      <button type="button" class="sec-tool" id="toolAddAnime" onclick="inlineAddAnime()" style="display:none">+ Anime</button>
+      <button type="button" class="sec-tool" id="toolAddMusic" onclick="inlineAddMusic()" style="display:none">+ Musique</button>
+      <button type="button" class="sec-tool" id="toolAddGal" onclick="document.getElementById('inlineGalFile').click()" style="display:none">+ Photo</button>
+      <button type="button" class="sec-tool" onclick="openProfile()">Studio complet</button>
+      <input type="file" id="inlineGalFile" accept="image/*" hidden onchange="inlineAddGallery(this)">
+    </div>
+    <div id="pvTab-links" class="pv-tab-panel">
+      <div id="pvBlocks"></div>
+    </div>
+    <div id="pvTab-anime" class="pv-tab-panel" style="display:none">
+      <div id="pvAnime" class="anime-list"></div>
+    </div>
+    <div id="pvTab-music" class="pv-tab-panel" style="display:none">
+      <div id="pvSpotify" style="margin-bottom:12px"></div>
+      <div id="pvPlaylist"></div>
+    </div>
+    <div id="pvTab-gallery" class="pv-tab-panel" style="display:none">
+      <div id="pvGallery"></div>
+    </div>
+    <div id="pvTab-accounts" class="pv-tab-panel" style="display:none">
+      <div id="pvLinkedAccounts" class="pv-linked"></div>
+      <div id="pvSteamLibrary" class="steam-lib" style="display:none">
+        <h3 class="edit-h3">Bibliothèque Steam</h3>
+        <div id="pvSteamGames" class="steam-games-grid"></div>
+        <p class="hint" id="pvSteamHint"></p>
+      </div>
+      <div id="pvSpotifyEmbed" style="margin-top:12px"></div>
+    </div>
+    <div id="pvTab-stream" class="pv-tab-panel" style="display:none">
+      <div id="pvStreamPlayer" class="xstream">
+        <div class="xstream-offline" id="xstreamOffline">
+          <div class="xstream-ico">📺</div>
+          <div class="xstream-title" id="xstreamOffTitle">Hors ligne</div>
+          <div class="xstream-desc" id="xstreamOffDesc">Aucun live en cours.</div>
+          <div id="xstreamOwnerTools" style="display:none;margin-top:12px;width:100%;max-width:420px;text-align:left">
+            <div class="xs-mode-tabs">
+              <button type="button" class="chip active" id="xsModeOther" onclick="setStreamMode('other')">Twitch / Kick / YT</button>
+              <button type="button" class="chip" id="xsModeHls" onclick="setStreamMode('hls')">OBS natif</button>
+            </div>
+            <input type="hidden" id="xsPlatform" value="twitch">
+
+            <div id="xsOtherPanel">
+              <label class="field-label">Plateforme</label>
+              <select id="xsPlatformOther" class="input" onchange="document.getElementById('xsPlatform').value=this.value">
+                <option value="twitch">Twitch</option>
+                <option value="kick">Kick</option>
+                <option value="youtube">YouTube Live</option>
+                <option value="iframe">Embed custom</option>
+              </select>
+              <label class="field-label">Pseudo / URL</label>
+              <input type="text" id="xsChannel" class="input" placeholder="pseudo Twitch, Kick, ou URL YouTube live…">
+              <label class="field-label">Titre du live</label>
+              <input type="text" id="xsTitle" class="input" placeholder="Mon stream XULTRA">
+              <label class="field-label">Catégorie</label>
+              <input type="text" id="xsCategory" class="input" placeholder="Just Chatting, Gaming…">
+              <div class="linked-actions" style="margin-top:10px">
+                <button type="button" class="btn-primary" style="flex:1;margin:0" onclick="saveStreamSettings()">Enregistrer</button>
+                <button type="button" class="btn btn-outline xstream-golive" style="margin:0" onclick="toggleStreamLive()">Go Live</button>
+              </div>
+              <p class="hint" id="xsHint" style="margin-top:8px">OBS → Twitch / Kick / YouTube, puis Go Live ici pour afficher le player sur ton profil.</p>
+            </div>
+
+            <div id="xsHlsPanel" style="display:none">
+              <div class="xs-maintenance">
+                <div class="xs-maint-ico">🛠️</div>
+                <div class="xs-maint-title">Stream natif XULTRA</div>
+                <div class="xs-maint-badge">En maintenance</div>
+                <p class="xs-maint-desc">
+                  Le mode OBS → HLS sans plateforme tierce arrive plus tard (solution gratuite en cours).
+                  En attendant, utilise <strong>Twitch / Kick / YouTube</strong> — gratuit et déjà branché.
+                </p>
+              </div>
+              <input type="hidden" id="xsRtmp" value="">
+              <input type="hidden" id="xsStreamKey" value="">
+              <input type="hidden" id="xsChannelOther" value="">
+            </div>
+          </div>
+        </div>
+        <div class="xstream-live" id="xstreamLive" style="display:none">
+          <div class="xstream-bar">
+            <span class="xstream-live-badge">● LIVE</span>
+            <span class="xstream-live-title" id="xstreamLiveTitle">Live</span>
+            <span class="xstream-cat" id="xstreamCat"></span>
+            <button type="button" class="btn btn-outline xstream-end" id="xstreamEndBtn" style="display:none;margin-left:auto" onclick="toggleStreamLive()">Terminer</button>
+          </div>
+          <div class="xstream-frame" id="xstreamFrame"></div>
+        </div>
+      </div>
+    </div>
+    <div id="pvTab-notes" class="pv-tab-panel" style="display:none">
+      <div id="pvNotes"></div>
+      <div id="pvNotesCreate" class="note-studio" style="display:none;margin-top:14px">
+        <div class="note-studio-title">Nouvelle note</div>
+        <textarea id="noteBody" class="input note-body-input" rows="10" placeholder="Colle ou écris ton contenu…" maxlength="20000"></textarea>
+        <div class="note-studio-section">Paramètres</div>
+        <label class="field-label">Titre</label>
+        <input type="text" id="noteTitle" class="input" placeholder="Nom / titre de la note" maxlength="120">
+        <label class="field-label">Catégorie</label>
+        <select id="noteCategory" class="input">
+          <option value="none">Aucune</option>
+          <option value="code">Code</option>
+          <option value="text">Texte</option>
+          <option value="config">Config / logs</option>
+          <option value="idea">Idée</option>
+          <option value="secret">Secret</option>
+          <option value="other">Autre</option>
+        </select>
+        <label class="field-label">Tags (séparés par des virgules)</label>
+        <input type="text" id="noteTags" class="input" placeholder="ex: js, api, draft" maxlength="120">
+        <label class="field-label">Coloration syntaxique</label>
+        <select id="noteSyntax" class="input">
+          <option value="none">Aucune</option>
+          <option value="text">Texte</option>
+          <option value="javascript">JavaScript</option>
+          <option value="html">HTML</option>
+          <option value="css">CSS</option>
+          <option value="json">JSON</option>
+          <option value="python">Python</option>
+          <option value="bash">Bash / Shell</option>
+          <option value="markdown">Markdown</option>
+          <option value="sql">SQL</option>
+        </select>
+        <label class="field-label">Expiration</label>
+        <select id="noteExpiry" class="input">
+          <option value="0">Jamais</option>
+          <option value="0.17">10 minutes</option>
+          <option value="1">1 heure</option>
+          <option value="24">24 heures</option>
+          <option value="168">7 jours</option>
+          <option value="720">30 jours</option>
+        </select>
+        <label class="field-label">Visibilité</label>
+        <select id="noteExposure" class="input">
+          <option value="public">Publique (listée sur le profil)</option>
+          <option value="unlisted">Non listée (lien uniquement)</option>
+          <option value="private">Privée (toi seul)</option>
+        </select>
+        <label class="field-label">Dossier (optionnel)</label>
+        <input type="text" id="noteFolder" class="input" placeholder="ex: projets, perso" maxlength="40">
+        <label class="field-label">Mot de passe (optionnel)</label>
+        <input type="password" id="notePassword" class="input" placeholder="Protège l'ouverture" maxlength="64" autocomplete="new-password">
+        <label class="switch-label"><input type="checkbox" id="noteBurn"><span>Burn after read — destruction après 1 lecture</span></label>
+        <button type="button" class="btn-primary" style="width:100%;margin-top:10px" onclick="createProfileNote()">Créer la note & copier le lien</button>
+        <p class="hint" id="noteCreateHint">Le lien sera du type xultra.space/?note=…</p>
+      </div>
+    </div>
+    <p class="hint" id="pvEmpty"></p>
+    <footer class="footer">xultra.spac<a href="#" class="screamer-seed" onclick="triggerScreamer(event);return false;" title="">e</a></footer>
+  </main>
+
+  <!-- Floating player (mobile) + inbox FAB left -->
+  <div class="player" id="musicPlayer">
+    <div class="player-top">
+      <img id="trackCoverFloat" class="track-cover" src="" alt="" style="display:none">
+      <div class="track-info">
+        <div id="trackTitleFloat" class="track-title">Aucune musique</div>
+        <div id="trackArtistFloat" class="track-artist">—</div>
+      </div>
+      <div class="player-actions">
+        <button type="button" id="likeTrackBtn" onclick="toggleTrackLike()">♡</button>
+        <button type="button" onclick="openPlaylist()">☰</button>
+        <button type="button" onclick="hidePlayer()">✕</button>
+      </div>
+    </div>
+    <div class="controls">
+      <button type="button" onclick="prevTrack()">⏮</button>
+      <button type="button" class="play-main" id="playBtnFloat" onclick="togglePlay()">▶️</button>
+      <button type="button" onclick="nextTrack()">⏭</button>
+    </div>
+  </div>
+  <button type="button" class="player-toggle" id="playerToggle" onclick="showPlayer()">🎵</button>
+  <button type="button" class="notif-fab" id="notifFab" onclick="toggleNotifPanel()" title="Notifications" style="display:none">
+    🔔<span class="inbox-fab-badge" id="notifBadge" style="display:none">0</span>
+  </button>
+  <div id="notifPanel" class="notif-panel" style="display:none">
+    <div class="notif-head">
+      <strong>Notifications</strong>
+      <button type="button" class="btn btn-outline" style="padding:4px 8px;font-size:.7rem" onclick="markAllNotifsRead()">Tout lu</button>
+    </div>
+    <div id="notifList" class="notif-list"><div class="hint" style="padding:12px">Aucune</div></div>
+  </div>
+  <button type="button" class="inbox-fab" id="inboxFab" onclick="openInbox()" title="Messages">
+    ✉<span class="inbox-fab-badge" id="inboxFabBadge" style="display:none">0</span>
+  </button>
+
+  <audio id="audio"></audio>
+  <script src="script.js"></script>
+  <script async src="https://platform.twitter.com/widgets.js" charset="utf-8"></script>
+
+  <div id="screamerOverlay" class="screamer-overlay" style="display:none" onclick="closeScreamer()">
+    <div class="screamer-flash"></div>
+    <img id="screamerImg" class="screamer-img" alt="" draggable="false">
+    <div class="screamer-text">GO TO SLEEP</div>
+  </div>
+</body>
+</html>

@@ -1,0 +1,47 @@
+{
+  "name": "XULTRA",
+  "short_name": "XULTRA",
+  "description": "Ta bulle · dark · neon — hub social, vocal, profils",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#06060c",
+  "theme_color": "#0a0a0f",
+  "lang": "fr",
+  "categories": ["social", "entertainment"],
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Hub Vocal",
+      "short_name": "Vocal",
+      "url": "/?hub=voice",
+      "description": "Ouvrir le chat vocal"
+    },
+    {
+      "name": "Hub Social",
+      "short_name": "Social",
+      "url": "/?hub=social",
+      "description": "Fil d'actualité"
+    }
+  ]
+}
